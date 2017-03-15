@@ -4,9 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
+import com.querydsl.core.types.Predicate;
 import com.rms.rms_api.employee.Employee;
+import com.rms.rms_api.employee.QEmployee;
 import com.rms.rms_api.employee.EmployeeHistory;
 import com.rms.rms_api.employee.repository.EmployeeRepository;
 import com.rms.rms_api.employee.repository.JobDescHistoryRepository;
@@ -20,9 +25,26 @@ public class EmployeeServiceImpl implements EmployeeService {
 	@Autowired
 	private JobDescHistoryRepository jobDescHistoryRepository;
 
-	public List<Employee> getAllEmployees() {
+	@Override
+	public List<Employee> getAllEmployees(String search, Pageable pageable) {
 		List<Employee> employees = new ArrayList<>();
-		employeeRepository.findAllByOrderByFirstNameAsc().forEach(employees::add);
+		if (StringUtils.isEmpty(search) && pageable.getSort() == null) {
+			employeeRepository.findAllByOrderByFirstNameAsc(pageable).forEach(employees::add);
+		} else {
+			QEmployee employee = QEmployee.employee;
+//			employeeRepository
+//					.findAll((employee.firstName.likeIgnoreCase("%" + search + "%")
+//							.or(employee.lastName.likeIgnoreCase("%" + search + "%"))), pageable)
+//					.forEach(employees::add);
+			employeeRepository
+			.findAll((employee.firstName.containsIgnoreCase(search)
+					.or(employee.lastName.containsIgnoreCase(search))), pageable)
+			.forEach(employees::add);
+//			Predicate predicate = employee.gender.eq("M");
+//			employeeRepository
+//					.findAll(predicate, pageable)
+//					.forEach(employees::add);
+		}
 		for (Employee employee : employees) {
 			if (!employee.getHistory().isEmpty()) {
 				for (EmployeeHistory history : employee.getHistory()) {
@@ -36,9 +58,18 @@ public class EmployeeServiceImpl implements EmployeeService {
 		return employees;
 	}
 	
-	public List<Employee> getAllEmployeesWithOutDetails() {
+	@Override
+	public List<Employee> getAllEmployeesWithOutDetails(String search, Pageable pageable) {
 		List<Employee> employees = new ArrayList<>();
-		employeeRepository.findAll().forEach(employees::add);
+		if (pageable.getSort().equals(null)) {
+			employeeRepository.findAllByOrderByFirstNameAsc(pageable).forEach(employees::add);
+		} else {
+			QEmployee employee = QEmployee.employee;
+			employeeRepository
+					.findAll((employee.firstName.likeIgnoreCase("%" + search + "%")
+							.or(employee.lastName.likeIgnoreCase("%" + search + "%"))), pageable)
+					.forEach(employees::add);
+		}
 		for (Employee employee : employees) {
 			employee.setFamilyMember(new ArrayList<>());
 			employee.setGradeHistory(new ArrayList<>());
@@ -48,7 +79,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 		return employees;
 	}
 	
-	public Employee getAllEmployeesById(String guid) {
+	@Override
+	public Employee getEmployeeById(String guid) {
 		Employee employee = new Employee();
 		employee = employeeRepository.findOne(guid);
 		if (employee != null && !employee.getHistory().isEmpty()) {
@@ -75,6 +107,13 @@ public class EmployeeServiceImpl implements EmployeeService {
 	@Override
 	public void delete(String guid) {
 		employeeRepository.delete(guid);
+	}
+
+	@Override
+	public long getTotalEmployee(String search) {
+		QEmployee employee = QEmployee.employee;
+		return employeeRepository.count(
+				(employee.firstName.containsIgnoreCase(search).or(employee.lastName.containsIgnoreCase(search))));
 	}
 
 }
