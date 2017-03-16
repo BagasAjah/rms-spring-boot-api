@@ -1,5 +1,6 @@
 package com.rms.rms_api.employee.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +15,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.rms.rms_api.common.SearchCriteria;
 import com.rms.rms_api.common.Response;
 import com.rms.rms_api.common.ResponseWrapper;
 import com.rms.rms_api.employee.Employee;
 import com.rms.rms_api.employee.service.EmployeeServiceImpl;
+
+import net.sf.json.JSONObject;
 
 @RestController
 public class EmployeeController {
@@ -27,18 +31,32 @@ public class EmployeeController {
 	
 	@CrossOrigin
 	@RequestMapping(value = "api/employees")
-	public ResponseEntity<ResponseWrapper> getAll(@RequestParam String search, Pageable pageable) {
-		List<Employee> result = employeeServiceImpl.getAllEmployees(search, pageable);
-		Long total = employeeServiceImpl.getTotalEmployee(search);
+	public ResponseEntity<ResponseWrapper> getAll(@RequestParam String search, Pageable pageable) throws Exception {
+		List<SearchCriteria> listCriteria = new ArrayList<>();
+		JSONObject jsonFilter = new JSONObject();
+		jsonFilter = JSONObject.fromObject(search);
+		if (!jsonFilter.isEmpty()) {
+			listCriteria.add(new SearchCriteria(jsonFilter, "or"));
+		}
+//		listCriteria.add(new SearchCriteria(filter, "and"));
+
+		List<Employee> result = employeeServiceImpl.getAllEmployees(listCriteria, pageable);
+		Long total = employeeServiceImpl.getTotalEmployee(listCriteria);
 		ResponseWrapper wrapper = new ResponseWrapper(result, total);
 		return new ResponseEntity<>(wrapper, HttpStatus.OK);
 	}
 	
 	@CrossOrigin
 	@RequestMapping(value = "api/employeesWithOutDetails")
-	public ResponseEntity<ResponseWrapper> getAllWithOutDetails(@RequestParam String search, Pageable pageable) {
-		List<Employee> result =  employeeServiceImpl.getAllEmployeesWithOutDetails(search, pageable);
-		Long total = employeeServiceImpl.getTotalEmployee(search);
+	public ResponseEntity<ResponseWrapper> getAllWithOutDetails(@RequestParam String search, Pageable pageable) throws Exception {
+		List<SearchCriteria> listCriteria = new ArrayList<>();
+		JSONObject jsonFilter = new JSONObject();
+		jsonFilter = JSONObject.fromObject(search);
+		if (!jsonFilter.isEmpty()) {
+			listCriteria.add(new SearchCriteria(jsonFilter, "or"));
+		}
+		List<Employee> result =  employeeServiceImpl.getAllEmployeesWithOutDetails(listCriteria, pageable);
+		Long total = employeeServiceImpl.getTotalEmployee(listCriteria);
 		ResponseWrapper wrapper = new ResponseWrapper(result, total);
 		return new ResponseEntity<>(wrapper, HttpStatus.OK);
 	}
