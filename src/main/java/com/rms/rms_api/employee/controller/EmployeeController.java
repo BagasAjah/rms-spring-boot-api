@@ -31,14 +31,22 @@ public class EmployeeController {
 	
 	@CrossOrigin
 	@RequestMapping(value = "api/employees")
-	public ResponseEntity<ResponseWrapper> getAll(@RequestParam String search, Pageable pageable) throws Exception {
+	public ResponseEntity<ResponseWrapper> getAll(@RequestParam String search, @RequestParam String filter, Pageable pageable) throws Exception {
 		List<SearchCriteria> listCriteria = new ArrayList<>();
+		JSONObject jsonSearch = new JSONObject();
 		JSONObject jsonFilter = new JSONObject();
-		jsonFilter = JSONObject.fromObject(search);
+		if (!search.isEmpty()) {
+			jsonSearch = JSONObject.fromObject(search);
+		}
+		if (!jsonSearch.isEmpty()) {
+			listCriteria.add(new SearchCriteria(jsonSearch, "or"));
+		}
+		if (!filter.isEmpty()) {
+			jsonFilter = JSONObject.fromObject(filter);
+		}
 		if (!jsonFilter.isEmpty()) {
 			listCriteria.add(new SearchCriteria(jsonFilter, "or"));
 		}
-//		listCriteria.add(new SearchCriteria(filter, "and"));
 
 		List<Employee> result = employeeServiceImpl.getAllEmployees(listCriteria, pageable);
 		Long total = employeeServiceImpl.getTotalEmployee(listCriteria);

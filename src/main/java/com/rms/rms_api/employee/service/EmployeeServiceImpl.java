@@ -103,30 +103,33 @@ public class EmployeeServiceImpl implements EmployeeService {
 	}
 	
 	private BooleanExpression generatePredicate(List<SearchCriteria> criterias) throws Exception {
-		if(criterias.isEmpty()) {
+		if (criterias.isEmpty()) {
 			return null;
 		}
-		
+
 		BooleanExpression result = null;
-        for (SearchCriteria criteria : criterias) {
-    		List<BooleanExpression> predicates = new ArrayList<BooleanExpression>();
-        	for(SearchFilter filter : criteria.getFilters()) {
-                final BooleanExpression exp = getSinglePredicate(filter);
-                if (exp != null) {
-                    predicates.add(exp);
-                }
-    		}
-        	BooleanExpression tmpResult = predicates.get(0);
-            for (int i = 1; i < predicates.size(); i++) {
-            	if (criteria.getLogic().equalsIgnoreCase("or")) {
-            		result = tmpResult.or(predicates.get(i));
-            	} else if (criteria.getLogic().equalsIgnoreCase("and")){
-            		result = tmpResult.and(predicates.get(i));
-            	} else {
-            		throw new Exception("logic not provided");
-            	}
-            }
-        }
+		for (SearchCriteria criteria : criterias) {
+			List<BooleanExpression> predicates = new ArrayList<BooleanExpression>();
+			if (criteria.getFilters().isEmpty()) {
+				return null;
+			}
+			for (SearchFilter filter : criteria.getFilters()) {
+				final BooleanExpression exp = getSinglePredicate(filter);
+				if (exp != null) {
+					predicates.add(exp);
+				}
+			}
+			BooleanExpression tmpResult = predicates.get(0);
+			for (int i = 1; i < predicates.size(); i++) {
+				if (criteria.getLogic().equalsIgnoreCase("or")) {
+					result = tmpResult.or(predicates.get(i));
+				} else if (criteria.getLogic().equalsIgnoreCase("and")) {
+					result = tmpResult.and(predicates.get(i));
+				} else {
+					throw new Exception("logic not provided");
+				}
+			}
+		}
 		return result;
 	}
 	
