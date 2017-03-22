@@ -45,7 +45,7 @@ public class EmployeeController {
 			jsonFilter = JSONObject.fromObject(filter);
 		}
 		if (!jsonFilter.isEmpty()) {
-			listCriteria.add(new SearchCriteria(jsonFilter, "or"));
+			listCriteria.add(new SearchCriteria(jsonFilter, "and"));
 		}
 
 		List<Employee> result = employeeServiceImpl.getAllEmployees(listCriteria, pageable);

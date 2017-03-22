@@ -1,14 +1,11 @@
 package com.rms.rms_api.common;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 public class SearchCriteria {
 	private String logic;
-	private List<SearchFilter> filters;
+	private JSONArray filters;
 
 	public SearchCriteria() {
 
@@ -18,14 +15,7 @@ public class SearchCriteria {
 		super();
 		JSONArray filterArray = jsonFilter.getJSONArray("filters");
 		this.logic = logic;
-		this.filters = new ArrayList<>();
-		for (int i = 0; i < filterArray.size(); i++) {
-			JSONObject filterobj = filterArray.getJSONObject(i);
-			String key = filterobj.getString("field");
-			String operation = filterobj.getString("operator");
-			String value = filterobj.getString("value");
-			this.filters.add(new SearchFilter(key, operation, value));
-		}
+		this.filters = filterArray;
 	}
 
 	public String getLogic() {
@@ -36,11 +26,11 @@ public class SearchCriteria {
 		this.logic = logic;
 	}
 
-	public List<SearchFilter> getFilters() {
+	public JSONArray getFilters() {
 		return filters;
 	}
 
-	public void setFilters(List<SearchFilter> filters) {
+	public void setFilters(JSONArray filters) {
 		this.filters = filters;
 	}
 }
