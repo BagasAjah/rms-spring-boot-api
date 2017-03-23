@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.PathBuilder;
+import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.core.types.dsl.StringPath;
 import com.rms.rms_api.common.SearchCriteria;
 import com.rms.rms_api.employee.Employee;
@@ -164,11 +165,16 @@ public class EmployeeServiceImpl implements EmployeeService {
 		String operation = filterObj.getString("operator");
 		String value = filterObj.getString("value");
 		
-		StringPath path = entityPath.getString(key);
-		if (operation.equalsIgnoreCase("eq")) {
-			predicate = path.eq(value);
-		} else if (operation.equalsIgnoreCase("icontains")) {
-			predicate = path.containsIgnoreCase(value);
+		if (key.equalsIgnoreCase("name")) {
+			StringExpression concate = entityPath.getString("firstName").concat(" ").concat(entityPath.getString("lastName"));
+			predicate = concate.containsIgnoreCase(value);
+		} else {
+			StringPath path = entityPath.getString(key);
+			if (operation.equalsIgnoreCase("eq")) {
+				predicate = path.eq(value);
+			} else if (operation.equalsIgnoreCase("icontains")) {
+				predicate = path.containsIgnoreCase(value);
+			}
 		}
 
 		if (predicate == null) {
