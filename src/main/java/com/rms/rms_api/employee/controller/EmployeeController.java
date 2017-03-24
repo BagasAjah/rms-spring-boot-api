@@ -79,15 +79,15 @@ public class EmployeeController {
 	@CrossOrigin
 	@RequestMapping(method = RequestMethod.POST, value = "api/employee")
 	public ResponseEntity<Response> save(@RequestBody Employee employee) {
-		String guid = employeeServiceImpl.saveOrUpdate(employee);
+		String guid = employeeServiceImpl.save(employee);
 		Response repsonse = new Response(guid);
 		return new ResponseEntity<>(repsonse, HttpStatus.OK);
 	}
 	
 	@CrossOrigin
 	@RequestMapping(method = RequestMethod.PUT, value = "api/employee")
-	public ResponseEntity<Response> update(@RequestBody Employee employee) {
-		String guid = employeeServiceImpl.saveOrUpdate(employee);
+	public ResponseEntity<Response> update(@RequestBody Employee employee) throws Exception {
+		String guid = employeeServiceImpl.update(employee);
 		Response repsonse = new Response(guid);
 		return new ResponseEntity<>(repsonse, HttpStatus.OK);
 	}

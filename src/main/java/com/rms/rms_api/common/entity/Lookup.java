@@ -1,4 +1,4 @@
-package com.rms.rms_api.common;
+package com.rms.rms_api.common.entity;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

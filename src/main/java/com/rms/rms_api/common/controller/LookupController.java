@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.rms.rms_api.common.Lookup;
+import com.rms.rms_api.common.entity.Lookup;
 import com.rms.rms_api.common.service.LookupServiceImpl;
 
 @RestController

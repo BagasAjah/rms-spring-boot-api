@@ -15,7 +15,11 @@ public interface EmployeeService {
 	
 	public Employee getEmployeeById(String guid);
 	
-	public String saveOrUpdate(Employee employee);
+	public Employee findByID(String guid);
+	
+	public String save(Employee employee);
+	
+	public String update(Employee employee) throws Exception;
 	
 	public void delete(String guid);
 	

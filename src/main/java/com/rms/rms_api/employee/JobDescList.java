@@ -8,12 +8,17 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.GenericGenerator;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.rms.rms_api.common.entity.RecordStatusEntity;
 
 @Entity
-public class JobDescList {
+@FilterDef(name = "activeFilter")
+@Filter(name="activeFilter", condition="1 = record_statusid")
+public class JobDescList extends RecordStatusEntity{
 	
 	@Id
 	@GeneratedValue(generator = "system-uuid")

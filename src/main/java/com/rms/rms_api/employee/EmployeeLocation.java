@@ -15,9 +15,10 @@ import org.hibernate.annotations.GenericGenerator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.rms.rms_api.common.CustomJsonDateSerializer;
+import com.rms.rms_api.common.entity.RecordStatusEntity;
 
 @Entity
-public class EmployeeLocation {
+public class EmployeeLocation extends RecordStatusEntity {
 
 	@Id
 	@GeneratedValue(generator = "system-uuid")

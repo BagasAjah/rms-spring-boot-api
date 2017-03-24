@@ -3,6 +3,10 @@ package com.rms.rms_api.employee.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
+import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -11,42 +15,44 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.core.types.dsl.StringPath;
+import com.rms.rms_api.common.RMSConstant;
 import com.rms.rms_api.common.SearchCriteria;
 import com.rms.rms_api.employee.Employee;
-import com.rms.rms_api.employee.EmployeeHistory;
 import com.rms.rms_api.employee.repository.EmployeeRepository;
-import com.rms.rms_api.employee.repository.JobDescHistoryRepository;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
-
+	
+	@PersistenceContext
+	private EntityManager em;
+	
 	@Autowired
 	private EmployeeRepository employeeRepository;
-
+	
 	@Autowired
-	private JobDescHistoryRepository jobDescHistoryRepository;
+	private EmployeeFamilyServiceImpl employeeFamilyServiceImpl;
+	
+	@Autowired
+	private EmployeeGradeServiceImpl employeeGradeServiceImpl;
+	
+	@Autowired
+	private EmployeeHistoryServiceImpl employeeHistoryServiceImpl;
+	
+	@Autowired
+	private EmployeeLocationServiceImpl employeeLocationServiceImpl;
 
 	@Override
 	public List<Employee> getAllEmployees(List<SearchCriteria> criterias, Pageable pageable) throws Exception {
 		List<Employee> employees = new ArrayList<>();
+		em.unwrap(Session.class).enableFilter(RMSConstant.ACTIVE_FILTER);
 		if (criterias.isEmpty() && pageable.getSort() == null) {
 			employeeRepository.findAllByOrderByFirstNameAsc(pageable).forEach(employees::add);
 		} else {
 			BooleanExpression predicate = generatePredicate(criterias);
 			employeeRepository.findAll(predicate, pageable).forEach(employees::add);
-		}
-		for (Employee employee : employees) {
-			if (!employee.getHistory().isEmpty()) {
-				for (EmployeeHistory history : employee.getHistory()) {
-					List<String> jobdescList = new ArrayList<>();
-					jobDescHistoryRepository.findByEmployeeHistoryGuid(history.getEmployeeHistoryGuid())
-							.forEach(jobdesc -> jobdescList.add(jobdesc.getJebDescName()));
-					history.setJobDesc(jobdescList);
-				}
-			}
 		}
 		return employees;
 	}
@@ -54,6 +60,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 	@Override
 	public List<Employee> getAllEmployeesWithOutDetails(List<SearchCriteria> criterias, Pageable pageable) throws Exception {
 		List<Employee> employees = new ArrayList<>();
+		em.unwrap(Session.class).enableFilter(RMSConstant.ACTIVE_FILTER);
 		if (pageable.getSort().equals(null)) {
 			employeeRepository.findAllByOrderByFirstNameAsc(pageable).forEach(employees::add);
 		} else {
@@ -72,24 +79,54 @@ public class EmployeeServiceImpl implements EmployeeService {
 	@Override
 	public Employee getEmployeeById(String guid) {
 		Employee employee = new Employee();
-		employee = employeeRepository.findOne(guid);
-		if (employee != null && !employee.getHistory().isEmpty()) {
-			for (EmployeeHistory history : employee.getHistory()) {
-				List<String> jobdescList = new ArrayList<>();
-				jobDescHistoryRepository.findByEmployeeHistoryGuid(history.getEmployeeHistoryGuid())
-						.forEach(jobdesc -> jobdescList.add(jobdesc.getJebDescName()));
-				history.setJobDesc(jobdescList);
-			}
-		}
+		employee = findByID(guid);
 		return employee;
 	}
 
 	@Override
-	public String saveOrUpdate(Employee employee) {
-		employee.getGradeHistory().forEach(grade -> grade.setEmployee(employee));
-		employee.getFamilyMember().forEach(family -> family.setEmployee(employee));
-		employee.getLocation().forEach(location -> location.setEmployee(employee));
-		employee.getHistory().forEach(history -> history.setEmployee(employee));
+	public String save(Employee updatedEmployee) {
+		updatedEmployee.getGradeHistory().forEach(grade -> {
+			grade.setRecordStatusID(RMSConstant.RECORD_STATUS_ACTIVE);
+			grade.setEmployee(updatedEmployee);
+		});
+		updatedEmployee.getFamilyMember().forEach(family -> {
+			family.setRecordStatusID(RMSConstant.RECORD_STATUS_ACTIVE);
+			family.setEmployee(updatedEmployee);
+		});
+		updatedEmployee.getLocation().forEach(location -> {
+			location.setRecordStatusID(RMSConstant.RECORD_STATUS_ACTIVE);
+			location.setEmployee(updatedEmployee);
+		});
+		updatedEmployee.getHistory().forEach(history -> {
+			history.setRecordStatusID(RMSConstant.RECORD_STATUS_ACTIVE);
+			history.setEmployee(updatedEmployee);
+			history.getJobDescList().forEach(jobdesc -> jobdesc.setRecordStatusID(RMSConstant.RECORD_STATUS_ACTIVE));
+		});
+		return saveOrUpdate(updatedEmployee);
+	}
+
+	@Override
+	public String update(Employee updatedEmployee) throws Exception {
+		Employee existingEmployee = findByID(updatedEmployee.getEmployeeGuid());
+		if (existingEmployee == null) {
+			throw new Exception("Employees not found");
+		}
+
+		existingEmployee = employeeFamilyServiceImpl.mergeEmployeeFamily(existingEmployee, updatedEmployee);
+		existingEmployee = employeeGradeServiceImpl.mergeEmployeeGrade(existingEmployee, updatedEmployee);
+		existingEmployee = employeeHistoryServiceImpl.mergeEmployeeHistory(existingEmployee, updatedEmployee);
+		existingEmployee = employeeLocationServiceImpl.mergeEmployeeLocation(existingEmployee, updatedEmployee);
+		
+		return saveOrUpdate(existingEmployee);
+	}
+	
+	@Override
+	public Employee findByID(String guid) {
+		em.unwrap(Session.class).enableFilter(RMSConstant.ACTIVE_FILTER);
+		return employeeRepository.findOne(guid);
+	}
+
+	private String saveOrUpdate(Employee employee) {
 		Employee savedEmployee = employeeRepository.save(employee);
 		return savedEmployee.getEmployeeGuid();
 	}
@@ -125,7 +162,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 			PathBuilder<Employee> entityPath = new PathBuilder<Employee>(Employee.class, "employee");
 			BooleanExpression predicate = null;
 			JSONObject filterObj = criteria.getFilters().getJSONObject(i);
-			if (filterObj.containsKey("logic")) {
+			if (filterObj.containsKey(RMSConstant.FILTER_CRITERIA_LOGIC)) {
 				result = constructFilterObject(result, entityPath, predicate, filterObj, criteria.getLogic());
 			} else {
 				result = constructPredicate(result, entityPath, predicate, filterObj, criteria.getLogic());
@@ -136,8 +173,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 	private BooleanExpression constructFilterObject(BooleanExpression result, PathBuilder<Employee> entityPath,
 			BooleanExpression predicate, JSONObject filterObj, String criteriaLogic) throws Exception {
-		String logic = filterObj.getString("logic");
-		JSONArray filtersArray = filterObj.getJSONArray("filters");
+		String logic = filterObj.getString(RMSConstant.FILTER_CRITERIA_LOGIC);
+		JSONArray filtersArray = filterObj.getJSONArray(RMSConstant.FILTER_CRITERIA_FILTERS);
 		BooleanExpression nestedPredicate = null;
 		for (int j = 0; j < filtersArray.size(); j++) {
 			JSONObject nestedFilterObj = filtersArray.getJSONObject(j);
@@ -147,9 +184,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 		if (result == null) {
 			result = nestedPredicate;
 		} else {
-			if (criteriaLogic.equalsIgnoreCase("or")) {
+			if (criteriaLogic.equalsIgnoreCase(RMSConstant.FILTER_CRITERIA_OPERATION_OR)) {
 				result = result.or(nestedPredicate);
-			} else if (criteriaLogic.equalsIgnoreCase("and")) {
+			} else if (criteriaLogic.equalsIgnoreCase(RMSConstant.FILTER_CRITERIA_OPERATION_AND)) {
 				result = result.and(nestedPredicate);
 			} else {
 				throw new Exception("logic not provided");
@@ -161,18 +198,18 @@ public class EmployeeServiceImpl implements EmployeeService {
 
 	private BooleanExpression constructPredicate(BooleanExpression result, PathBuilder<Employee> entityPath,
 			BooleanExpression predicate, JSONObject filterObj, String logic) throws Exception {
-		String key = filterObj.getString("field");
-		String operation = filterObj.getString("operator");
-		String value = filterObj.getString("value");
+		String key = filterObj.getString(RMSConstant.FILTER_CRITERIA_FIELD);
+		String operation = filterObj.getString(RMSConstant.FILTER_CRITERIA_OPERATION);
+		String value = filterObj.getString(RMSConstant.FILTER_CRITERIA_VALUE);
 		
 		if (key.equalsIgnoreCase("name")) {
 			StringExpression concate = entityPath.getString("firstName").concat(" ").concat(entityPath.getString("lastName"));
 			predicate = concate.containsIgnoreCase(value);
 		} else {
 			StringPath path = entityPath.getString(key);
-			if (operation.equalsIgnoreCase("eq")) {
+			if (operation.equalsIgnoreCase(RMSConstant.FILTER_CRITERIA_LOGIC_EQ)) {
 				predicate = path.eq(value);
-			} else if (operation.equalsIgnoreCase("icontains")) {
+			} else if (operation.equalsIgnoreCase(RMSConstant.FILTER_CRITERIA_LOGIC_LIKE)) {
 				predicate = path.containsIgnoreCase(value);
 			}
 		}
@@ -184,9 +221,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 		if (result == null) {
 			result = predicate;
 		} else {
-			if (logic.equalsIgnoreCase("or")) {
+			if (logic.equalsIgnoreCase(RMSConstant.FILTER_CRITERIA_OPERATION_OR)) {
 				result = result.or(predicate);
-			} else if (logic.equalsIgnoreCase("and")) {
+			} else if (logic.equalsIgnoreCase(RMSConstant.FILTER_CRITERIA_OPERATION_AND)) {
 				result = result.and(predicate);
 			} else {
 				throw new Exception("logic not provided");

@@ -14,6 +14,8 @@ import javax.persistence.OneToMany;
 import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.GenericGenerator;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -21,6 +23,7 @@ import com.rms.rms_api.common.CustomJsonDateSerializer;
 import com.rms.rms_api.common.XmlDateTimeAdapter;
 
 @Entity
+@FilterDef(name = "activeFilter")
 public class Employee {
 
 	@Id
@@ -83,15 +86,19 @@ public class Employee {
 	private String office;
 	
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "employee", cascade = CascadeType.ALL)
+	@Filter(name="activeFilter", condition="1 = record_statusid")
 	private List<EmployeeHistory> history = new ArrayList<>();
 	
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "employee", cascade = CascadeType.ALL)
+	@Filter(name="activeFilter", condition="1 = record_statusid")
 	private List<EmployeeGrade> gradeHistory = new ArrayList<>();
 	
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "employee", cascade = CascadeType.ALL)
+	@Filter(name="activeFilter", condition="1 = record_statusid")
 	private List<EmployeeFamily> familyMember = new ArrayList<>();
 	
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "employee", cascade = CascadeType.ALL)
+	@Filter(name="activeFilter", condition="1 = record_statusid")
 	private List<EmployeeLocation> location = new ArrayList<>();
 
 	public String getEmployeeGuid() {
