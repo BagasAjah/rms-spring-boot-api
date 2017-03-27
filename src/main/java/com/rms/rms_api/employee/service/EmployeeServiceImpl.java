@@ -56,7 +56,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 			BooleanExpression predicate = generatePredicate(criterias);
 			employeeRepository.findAll(predicate, pageable).forEach(employees::add);
 		}
-		employees.get(0).setBase64Image(convertByteToBase64(employees.get(0).getAvatar()));
+		employees.forEach(employee -> {
+			employee.setBase64Image(convertByteToBase64(employee.getAvatar()));
+		});
 		return employees;
 	}
 
@@ -77,7 +79,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 			employee.setLocation(new ArrayList<>());
 			employee.setHistory(new ArrayList<>());
 		}
-		employees.get(0).setBase64Image(convertByteToBase64(employees.get(0).getAvatar()));
+		employees.forEach(employee -> {
+			employee.setBase64Image(convertByteToBase64(employee.getAvatar()));
+		});
 		return employees;
 	}
 
@@ -108,6 +112,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 			history.setEmployee(updatedEmployee);
 			history.getJobDescList().forEach(jobdesc -> jobdesc.setRecordStatusID(RMSConstant.RECORD_STATUS_ACTIVE));
 		});
+
+		updatedEmployee.setAvatar(convertBase64ToByte(updatedEmployee.getBase64Image()));
 		return saveOrUpdate(updatedEmployee);
 	}
 
