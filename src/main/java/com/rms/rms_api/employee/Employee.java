@@ -10,7 +10,9 @@ import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.Lob;
 import javax.persistence.OneToMany;
+import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
@@ -27,78 +29,85 @@ import com.rms.rms_api.common.XmlDateTimeAdapter;
 public class Employee {
 
 	@Id
-	@Column(name = "employeeGuid", length=36)
+	@Column(name = "employeeGuid", length = 36)
 	@GeneratedValue(generator = "system-uuid")
-    @GenericGenerator(name = "system-uuid", strategy = "uuid2")
+	@GenericGenerator(name = "system-uuid", strategy = "uuid2")
 	private String employeeGuid;
-	
+
 	@NotNull
-	@Column(name = "firstName", length=40)
+	@Column(name = "firstName", length = 40)
 	private String firstName;
-	
-	@Column(name = "lastName", length=40)
+
+	@Column(name = "lastName", length = 40)
 	private String lastName;
-	
+
 	@NotNull
-	@Column(name = "gender", length=1)
+	@Column(name = "gender", length = 1)
 	private String gender;
-	
+
 	@NotNull
 	@XmlJavaTypeAdapter(value = XmlDateTimeAdapter.class, type = Date.class)
-    @JsonSerialize(using = CustomJsonDateSerializer.class)
+	@JsonSerialize(using = CustomJsonDateSerializer.class)
 	@Column(name = "dob")
 	private Date dob;
-	
-	@Column(name = "nationality", length=20)
+
+	@Column(name = "nationality", length = 20)
 	private String nationality;
-	
-	@Column(name = "maritalStatus", length=1)
+
+	@Column(name = "maritalStatus", length = 1)
 	private String maritalStatus;
-	
-	@Column(name = "phone", length=15)
+
+	@Column(name = "phone", length = 15)
 	private String phone;
 
-	@Column(name = "subDivision", length=40)
+	@Column(name = "subDivision", length = 40)
 	private String subDivision;
 
-	@Column(name = "status", length=1)
+	@Column(name = "status", length = 1)
 	private String status;
 
-    @JsonSerialize(using = CustomJsonDateSerializer.class)
+	@JsonSerialize(using = CustomJsonDateSerializer.class)
 	@Column(name = "suspendDate")
 	private Date suspendDate;
 
-    @NotNull
-    @JsonSerialize(using = CustomJsonDateSerializer.class)
+	@NotNull
+	@JsonSerialize(using = CustomJsonDateSerializer.class)
 	@Column(name = "hireDate")
 	private Date hireDate;
 
-	@Column(name = "grade", length=4)
+	@Column(name = "grade", length = 4)
 	private String grade;
 
-	@Column(name = "division", length=10)
+	@Column(name = "division", length = 10)
 	private String division;
 
-	@Column(name = "email", length=40)
+	@Column(name = "email", length = 40)
 	private String email;
 
-	@Column(name = "office", length=20)
+	@Column(name = "office", length = 20)
 	private String office;
-	
+
+	@Lob
+	@Column(name = "avatar")
+	private byte[] avatar;
+
+	@Transient
+	private String base64Image;
+
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "employee", cascade = CascadeType.ALL)
-	@Filter(name="activeFilter", condition="1 = record_statusid")
+	@Filter(name = "activeFilter", condition = "1 = record_statusid")
 	private List<EmployeeHistory> history = new ArrayList<>();
-	
+
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "employee", cascade = CascadeType.ALL)
-	@Filter(name="activeFilter", condition="1 = record_statusid")
+	@Filter(name = "activeFilter", condition = "1 = record_statusid")
 	private List<EmployeeGrade> gradeHistory = new ArrayList<>();
-	
+
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "employee", cascade = CascadeType.ALL)
-	@Filter(name="activeFilter", condition="1 = record_statusid")
+	@Filter(name = "activeFilter", condition = "1 = record_statusid")
 	private List<EmployeeFamily> familyMember = new ArrayList<>();
-	
+
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "employee", cascade = CascadeType.ALL)
-	@Filter(name="activeFilter", condition="1 = record_statusid")
+	@Filter(name = "activeFilter", condition = "1 = record_statusid")
 	private List<EmployeeLocation> location = new ArrayList<>();
 
 	public String getEmployeeGuid() {
@@ -260,4 +269,21 @@ public class Employee {
 	public void setLocation(List<EmployeeLocation> location) {
 		this.location = location;
 	}
+
+	public byte[] getAvatar() {
+		return avatar;
+	}
+
+	public void setAvatar(byte[] avatar) {
+		this.avatar = avatar;
+	}
+
+	public String getBase64Image() {
+		return base64Image;
+	}
+
+	public void setBase64Image(String base64Image) {
+		this.base64Image = base64Image;
+	}
+
 }

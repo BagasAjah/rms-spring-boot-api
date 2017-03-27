@@ -1,11 +1,13 @@
 package com.rms.rms_api.employee.service;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import org.apache.commons.lang.StringUtils;
 import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -25,22 +27,22 @@ import net.sf.json.JSONObject;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
-	
+
 	@PersistenceContext
 	private EntityManager em;
-	
+
 	@Autowired
 	private EmployeeRepository employeeRepository;
-	
+
 	@Autowired
 	private EmployeeFamilyServiceImpl employeeFamilyServiceImpl;
-	
+
 	@Autowired
 	private EmployeeGradeServiceImpl employeeGradeServiceImpl;
-	
+
 	@Autowired
 	private EmployeeHistoryServiceImpl employeeHistoryServiceImpl;
-	
+
 	@Autowired
 	private EmployeeLocationServiceImpl employeeLocationServiceImpl;
 
@@ -54,11 +56,13 @@ public class EmployeeServiceImpl implements EmployeeService {
 			BooleanExpression predicate = generatePredicate(criterias);
 			employeeRepository.findAll(predicate, pageable).forEach(employees::add);
 		}
+		employees.get(0).setBase64Image(convertByteToBase64(employees.get(0).getAvatar()));
 		return employees;
 	}
-	
+
 	@Override
-	public List<Employee> getAllEmployeesWithOutDetails(List<SearchCriteria> criterias, Pageable pageable) throws Exception {
+	public List<Employee> getAllEmployeesWithOutDetails(List<SearchCriteria> criterias, Pageable pageable)
+			throws Exception {
 		List<Employee> employees = new ArrayList<>();
 		em.unwrap(Session.class).enableFilter(RMSConstant.ACTIVE_FILTER);
 		if (pageable.getSort().equals(null)) {
@@ -73,13 +77,15 @@ public class EmployeeServiceImpl implements EmployeeService {
 			employee.setLocation(new ArrayList<>());
 			employee.setHistory(new ArrayList<>());
 		}
+		employees.get(0).setBase64Image(convertByteToBase64(employees.get(0).getAvatar()));
 		return employees;
 	}
-	
+
 	@Override
 	public Employee getEmployeeById(String guid) {
 		Employee employee = new Employee();
 		employee = findByID(guid);
+		employee.setBase64Image(convertByteToBase64(employee.getAvatar()));
 		return employee;
 	}
 
@@ -116,19 +122,16 @@ public class EmployeeServiceImpl implements EmployeeService {
 		existingEmployee = employeeGradeServiceImpl.mergeEmployeeGrade(existingEmployee, updatedEmployee);
 		existingEmployee = employeeHistoryServiceImpl.mergeEmployeeHistory(existingEmployee, updatedEmployee);
 		existingEmployee = employeeLocationServiceImpl.mergeEmployeeLocation(existingEmployee, updatedEmployee);
-		
+
+		existingEmployee.setAvatar(convertBase64ToByte(updatedEmployee.getBase64Image()));
+
 		return saveOrUpdate(existingEmployee);
 	}
-	
+
 	@Override
 	public Employee findByID(String guid) {
 		em.unwrap(Session.class).enableFilter(RMSConstant.ACTIVE_FILTER);
 		return employeeRepository.findOne(guid);
-	}
-
-	private String saveOrUpdate(Employee employee) {
-		Employee savedEmployee = employeeRepository.save(employee);
-		return savedEmployee.getEmployeeGuid();
 	}
 
 	@Override
@@ -141,7 +144,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 		BooleanExpression predicate = generatePredicate(listCriteria);
 		return employeeRepository.count(predicate);
 	}
-	
+
+	private String saveOrUpdate(Employee employee) {
+		Employee savedEmployee = employeeRepository.save(employee);
+		return savedEmployee.getEmployeeGuid();
+	}
+
 	private BooleanExpression generatePredicate(List<SearchCriteria> criterias) throws Exception {
 		if (criterias.isEmpty()) {
 			return null;
@@ -160,6 +168,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 	private BooleanExpression constructPredicate(BooleanExpression result, SearchCriteria criteria) throws Exception {
 		for (int i = 0; i < criteria.getFilters().size(); i++) {
 			PathBuilder<Employee> entityPath = new PathBuilder<Employee>(Employee.class, "employee");
+
 			BooleanExpression predicate = null;
 			JSONObject filterObj = criteria.getFilters().getJSONObject(i);
 			if (filterObj.containsKey(RMSConstant.FILTER_CRITERIA_LOGIC)) {
@@ -180,7 +189,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 			JSONObject nestedFilterObj = filtersArray.getJSONObject(j);
 			nestedPredicate = constructPredicate(nestedPredicate, entityPath, predicate, nestedFilterObj, logic);
 		}
-		
+
 		if (result == null) {
 			result = nestedPredicate;
 		} else {
@@ -192,7 +201,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 				throw new Exception("logic not provided");
 			}
 		}
-		
+
 		return result;
 	}
 
@@ -201,9 +210,10 @@ public class EmployeeServiceImpl implements EmployeeService {
 		String key = filterObj.getString(RMSConstant.FILTER_CRITERIA_FIELD);
 		String operation = filterObj.getString(RMSConstant.FILTER_CRITERIA_OPERATION);
 		String value = filterObj.getString(RMSConstant.FILTER_CRITERIA_VALUE);
-		
+
 		if (key.equalsIgnoreCase("name")) {
-			StringExpression concate = entityPath.getString("firstName").concat(" ").concat(entityPath.getString("lastName"));
+			StringExpression concate = entityPath.getString("firstName").concat(" ")
+					.concat(entityPath.getString("lastName"));
 			predicate = concate.containsIgnoreCase(value);
 		} else {
 			StringPath path = entityPath.getString(key);
@@ -217,7 +227,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 		if (predicate == null) {
 			return result;
 		}
-		
+
 		if (result == null) {
 			result = predicate;
 		} else {
@@ -230,6 +240,25 @@ public class EmployeeServiceImpl implements EmployeeService {
 			}
 		}
 		return result;
+	}
+
+	private byte[] convertBase64ToByte(String base64Image) {
+		if (StringUtils.isBlank(base64Image)) {
+			return null;
+		}
+		base64Image = base64Image.replace("\"", "");
+		String[] imageCodeArray = base64Image.split(",");
+		return Base64.getDecoder().decode(imageCodeArray[1]);
+	}
+
+	private String convertByteToBase64(byte[] input) {
+		if (input == null) {
+			return null;
+		}
+		String encoded = Base64.getEncoder().encodeToString(input);
+		StringBuilder builder = new StringBuilder();
+		builder.append("data:image/png;base64," + encoded);
+		return builder.toString();
 	}
 
 }
