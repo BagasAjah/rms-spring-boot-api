@@ -1,5 +1,6 @@
 package com.rms.rms_api.employee;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -12,16 +13,19 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
-import javax.persistence.Transient;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.GenericGenerator;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.rms.rms_api.common.CustomJsonDateSerializer;
+import com.rms.rms_api.common.entity.RecordStatusEntity;
 
 @Entity
-public class EmployeeHistory {
+@FilterDef(name = "activeFilter")
+public class EmployeeHistory extends RecordStatusEntity {
 
 	@Id
 	@GeneratedValue(generator = "system-uuid")
@@ -51,13 +55,9 @@ public class EmployeeHistory {
 	@JoinColumn(name = "employeeGuid", nullable = false)
 	private Employee employee;
 	
-	@JsonIgnore
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "employeeHistory", cascade = CascadeType.ALL)
-	private List<JobDescList> jobDescList;
-	
-	@Transient
-	private List<String> jobDesc;
-	
+	@Filter(name="activeFilter", condition="1 = record_statusid")
+	private List<JobDescList> jobDescList = new ArrayList<>();	
 
 	public String getEmployeeHistoryGuid() {
 		return employeeHistoryGuid;
@@ -123,11 +123,10 @@ public class EmployeeHistory {
 		this.jobDescList = jobDescList;
 	}
 
-	public List<String> getJobDesc() {
-		return jobDesc;
-	}
-
-	public void setJobDesc(List<String> jobDesc) {
-		this.jobDesc = jobDesc;
+	public void addNewJobdesc(String name, EmployeeHistory history) {
+		JobDescList jobDesc = new JobDescList();
+		jobDesc.setJebDescName(name);
+		jobDesc.setEmployeeHistory(history);
+		jobDescList.add(jobDesc);
 	}
 }

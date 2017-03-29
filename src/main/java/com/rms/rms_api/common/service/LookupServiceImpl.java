@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.rms.rms_api.common.Lookup;
+import com.rms.rms_api.common.entity.Lookup;
 import com.rms.rms_api.common.repository.LookupRepository;
 
 @Service
