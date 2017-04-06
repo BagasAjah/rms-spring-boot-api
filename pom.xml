@@ -100,17 +100,6 @@
 	        <artifactId>querydsl-sql-spring</artifactId>
 	        <version>4.1.2</version>
 	    </dependency>
-	    <!-- Data Migration -->
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
-			<version>4.1.2</version>
-		</dependency>
-		<dependency>
-   			<groupId>org.apache.commons</groupId>
-		    <artifactId>commons-dbcp2</artifactId>
-		    <version>2.0</version>
-		</dependency>
 	</dependencies>
 
 	<build>
